@@ -1,0 +1,8 @@
+{
+  "name": "MyMusic",
+  "description": "A production-grade music streaming application with Apple Music UI aesthetic, powered by YouTube Music, Supabase, and Node.js Express backend.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
