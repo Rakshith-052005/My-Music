@@ -1,4 +1,5 @@
 import { LyricLine, LyricsResponse, Track } from '../types/music';
+import { API_BASE } from './api';
 
 // Client-side in-memory cache for fetched lyrics
 const clientLyricsCache = new Map<string, LyricsResponse>();
@@ -29,7 +30,7 @@ export const lyricsService = {
         queryParams.set('artist', track.artist);
       }
 
-      const res = await fetch(`/api/music/lyrics?${queryParams.toString()}`);
+      const res = await fetch(`${API_BASE}/api/music/lyrics?${queryParams.toString()}`);
       if (!res.ok) {
         throw new Error(`Lyrics API responded with status ${res.status}`);
       }

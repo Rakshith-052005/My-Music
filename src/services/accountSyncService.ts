@@ -1,6 +1,5 @@
 import { UserProfile, Track, Playlist } from '../types/music';
-
-const API_BASE = '/api';
+import { API_BASE } from './api';
 
 export interface SyncedUserData {
   profile: UserProfile | null;
@@ -14,7 +13,7 @@ export const accountSyncService = {
   async getUserData(email: string): Promise<SyncedUserData | null> {
     if (!email || !email.trim()) return null;
     try {
-      const res = await fetch(`${API_BASE}/user/get?email=${encodeURIComponent(email.trim().toLowerCase())}`);
+      const res = await fetch(`${API_BASE}/api/user/get?email=${encodeURIComponent(email.trim().toLowerCase())}`);
       if (!res.ok) return null;
       const json = await res.json();
       if (json.success && json.data) {
@@ -42,7 +41,7 @@ export const accountSyncService = {
   }): Promise<SyncedUserData | null> {
     if (!email || !email.trim()) return null;
     try {
-      const res = await fetch(`${API_BASE}/user/sync`, {
+      const res = await fetch(`${API_BASE}/api/user/sync`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -65,7 +64,7 @@ export const accountSyncService = {
   async authenticateUser(email: string, password?: string, name?: string, avatarUrl?: string): Promise<SyncedUserData | null> {
     if (!email || !email.trim()) return null;
     try {
-      const res = await fetch(`${API_BASE}/user/auth`, {
+      const res = await fetch(`${API_BASE}/api/user/auth`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

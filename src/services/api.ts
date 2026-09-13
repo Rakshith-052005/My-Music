@@ -3,15 +3,29 @@ import { normalizeTrack, getProviderTrackId, isMusicTrack, cleanTrackTitle, dedu
 import { tasteService, PRESET_ARTISTS } from './tasteService';
 import { playlistService } from './playlistService';
 
-const API_BASE = import.meta.env.VITE_API_URL || '/api';
-const RENDER_FALLBACK = 'https://mymusic-api-siuh.onrender.com/api';
+const RENDER_BACKEND_URL = 'https://mymusic-api-siuh.onrender.com';
+
+// Ensure API_BASE always resolves to full production URL when deployed or when env var set
+const getApiBase = (): string => {
+  const envUrl = import.meta.env.VITE_API_URL;
+  if (envUrl && envUrl.trim() !== '' && !envUrl.startsWith('/')) {
+    return envUrl.replace(/\/+$/, '');
+  }
+  return RENDER_BACKEND_URL;
+};
+
+export const API_BASE = getApiBase();
 
 async function fetchWithFallback(endpoint: string, options?: RequestInit): Promise<any> {
-  const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  let cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  if (!cleanEndpoint.startsWith('/api/')) {
+    cleanEndpoint = `/api${cleanEndpoint}`;
+  }
 
-  // 1. Try local Express backend first
+  // 1. Try primary API base URL (e.g. https://mymusic-api-siuh.onrender.com/api/...)
+  const primaryUrl = `${API_BASE}${cleanEndpoint}`;
   try {
-    const res = await fetch(`${API_BASE}${cleanEndpoint}`, options);
+    const res = await fetch(primaryUrl, options);
     if (res.ok) {
       const data = await res.json();
       if (data && (data.success !== false || Array.isArray(data.data) || Array.isArray(data))) {
@@ -19,19 +33,21 @@ async function fetchWithFallback(endpoint: string, options?: RequestInit): Promi
       }
     }
   } catch (err) {
-    console.warn(`Local API endpoint ${cleanEndpoint} failed, attempting render fallback...`, err);
+    console.warn(`API call to ${primaryUrl} failed:`, err);
   }
 
-  // 2. If local API fails or returns unsuccessful, try direct Render backend fallback
-  try {
-    const fallbackUrl = `${RENDER_FALLBACK}${cleanEndpoint}`;
-    const fallbackRes = await fetch(fallbackUrl, options);
-    if (fallbackRes.ok) {
-      const data = await fallbackRes.json();
-      return data;
+  // 2. Direct Render backend fallback if primary URL differed
+  if (API_BASE !== RENDER_BACKEND_URL) {
+    const fallbackUrl = `${RENDER_BACKEND_URL}${cleanEndpoint}`;
+    try {
+      const fallbackRes = await fetch(fallbackUrl, options);
+      if (fallbackRes.ok) {
+        const data = await fallbackRes.json();
+        return data;
+      }
+    } catch (fallbackErr) {
+      console.warn(`Render fallback failed for ${fallbackUrl}:`, fallbackErr);
     }
-  } catch (fallbackErr) {
-    console.warn(`Render fallback failed for ${cleanEndpoint}:`, fallbackErr);
   }
 
   return { success: true, data: [] };
@@ -596,7 +612,7 @@ export const apiService = {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      await fetch(`${API_BASE}/music/events`, {
+      await fetch(`${API_BASE}/api/music/events`, {
         method: 'POST',
         headers,
         body: JSON.stringify(event),
@@ -618,7 +634,7 @@ export const apiService = {
     year: string = ''
   ): Promise<SongAudioBlueprint | null> {
     try {
-      const res = await fetch(`${API_BASE}/music/blueprint`, {
+      const res = await fetch(`${API_BASE}/api/music/blueprint`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

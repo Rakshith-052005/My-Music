@@ -10,7 +10,72 @@ const app = express();
 const PORT = 3000;
 const RENDER_BACKEND = process.env.RENDER_API_URL || 'https://mymusic-api-siuh.onrender.com';
 
-app.use(cors());
+// Dynamic CORS Origin Allowlist Configuration
+const ALLOWED_ORIGIN_PATTERNS = [
+  /^https:\/\/mymusic-nine-nu\.vercel\.app$/,
+  /^https:\/\/mymusic-[a-z0-9-]+-devadigarakshith30-1433s-projects\.vercel\.app$/,
+  /^https:\/\/.*\.vercel\.app$/,
+  /^http:\/\/localhost(:\d+)?$/,
+  /^http:\/\/127\.0\.0\.1(:\d+)?$/,
+  /^https:\/\/.*\.run\.app$/,
+];
+
+function isAllowedOrigin(origin: string | undefined): boolean {
+  if (!origin) return true; // Allow non-browser requests (e.g. curl, server-to-server)
+  const cleanOrigin = origin.trim().toLowerCase();
+  
+  if (
+    cleanOrigin.endsWith('.vercel.app') ||
+    cleanOrigin.includes('localhost') ||
+    cleanOrigin.includes('127.0.0.1') ||
+    cleanOrigin.endsWith('.run.app')
+  ) {
+    return true;
+  }
+  
+  return ALLOWED_ORIGIN_PATTERNS.some((pattern) => pattern.test(cleanOrigin));
+}
+
+// Custom CORS middleware for dynamic origin headers and OPTIONS preflight handling
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+
+  if (origin && isAllowedOrigin(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+    res.setHeader(
+      'Access-Control-Allow-Headers',
+      'Content-Type, Authorization, X-Requested-With, Accept, Origin, Access-Control-Request-Method, Access-Control-Request-Headers'
+    );
+    res.setHeader('Access-Control-Max-Age', '86400');
+  } else if (!origin) {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  }
+
+  // Handle preflight OPTIONS request
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  next();
+});
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (isAllowedOrigin(origin)) {
+        callback(null, true);
+      } else {
+        callback(null, true);
+      }
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+  })
+);
+
 app.use(express.json());
 
 // Cross-device Account Data Persistence Store
